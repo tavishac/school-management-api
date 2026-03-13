@@ -1,35 +1,46 @@
+const db = require("../config/database");
 const calculateDistance = require("../utils/distanceCalculator");
 
-let schools = [];
-
+// Add School API
 exports.addSchool = (req, res) => {
 
   const { name, address, latitude, longitude } = req.body;
 
+  // Validate input
   if (!name || !address || !latitude || !longitude) {
     return res.status(400).json({
       message: "All fields are required"
     });
   }
 
-  const newSchool = {
-    id: schools.length + 1,
-    name,
-    address,
-    latitude,
-    longitude
-  };
+  const query =
+    "INSERT INTO schools (name, address, latitude, longitude) VALUES (?, ?, ?, ?)";
 
-  schools.push(newSchool);
+  db.query(query, [name, address, latitude, longitude], (err, result) => {
 
-  res.json({
-    message: "School added successfully",
-    school: newSchool
+    // SHOW FULL DATABASE ERROR
+    if (err) {
+      console.error("Database Error:", err);
+
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+        code: err.code
+      });
+    }
+
+    res.json({
+      message: "School added successfully",
+      id: result.insertId
+    });
+
   });
 
 };
 
 
+
+// List Schools API
 exports.listSchools = (req, res) => {
 
   const userLat = parseFloat(req.query.latitude);
@@ -41,24 +52,39 @@ exports.listSchools = (req, res) => {
     });
   }
 
-  const schoolList = schools.map((school) => {
+  db.query("SELECT * FROM schools", (err, schools) => {
 
-    const distance = calculateDistance(
-      userLat,
-      userLon,
-      school.latitude,
-      school.longitude
-    );
+    if (err) {
+      console.error("Database Error:", err);
 
-    return {
-      ...school,
-      distance
-    };
+      return res.status(500).json({
+        message: "Database error",
+        error: err.message,
+        code: err.code
+      });
+    }
+
+    const schoolList = schools.map((school) => {
+
+      const distance = calculateDistance(
+        userLat,
+        userLon,
+        school.latitude,
+        school.longitude
+      );
+
+      return {
+        ...school,
+        distance
+      };
+
+    });
+
+    // sort by nearest distance
+    schoolList.sort((a, b) => a.distance - b.distance);
+
+    res.json(schoolList);
 
   });
-
-  schoolList.sort((a, b) => a.distance - b.distance);
-
-  res.json(schoolList);
 
 };
