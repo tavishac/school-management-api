@@ -1,5 +1,6 @@
-const db = require("../config/database");
 const calculateDistance = require("../utils/distanceCalculator");
+
+let schools = [];
 
 exports.addSchool = (req, res) => {
 
@@ -11,20 +12,19 @@ exports.addSchool = (req, res) => {
     });
   }
 
-  const query =
-    "INSERT INTO schools (name,address,latitude,longitude) VALUES (?,?,?,?)";
+  const newSchool = {
+    id: schools.length + 1,
+    name,
+    address,
+    latitude,
+    longitude
+  };
 
-  db.query(query, [name, address, latitude, longitude], (err, result) => {
+  schools.push(newSchool);
 
-    if (err) {
-      return res.status(500).json({ message: "Database error" });
-    }
-
-    res.json({
-      message: "School added successfully",
-      id: result.insertId
-    });
-
+  res.json({
+    message: "School added successfully",
+    school: newSchool
   });
 
 };
@@ -42,32 +42,24 @@ exports.listSchools = (req, res) => {
     });
   }
 
-  db.query("SELECT * FROM schools", (err, schools) => {
+  const schoolList = schools.map((school) => {
 
-    if (err) {
-      return res.status(500).json({ message: "Database error" });
-    }
+    const distance = calculateDistance(
+      userLat,
+      userLon,
+      school.latitude,
+      school.longitude
+    );
 
-    const schoolList = schools.map((school) => {
-
-      const distance = calculateDistance(
-        userLat,
-        userLon,
-        school.latitude,
-        school.longitude
-      );
-
-      return {
-        ...school,
-        distance
-      };
-
-    });
-
-    schoolList.sort((a, b) => a.distance - b.distance);
-
-    res.json(schoolList);
+    return {
+      ...school,
+      distance
+    };
 
   });
+
+  schoolList.sort((a, b) => a.distance - b.distance);
+
+  res.json(schoolList);
 
 };
