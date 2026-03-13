@@ -30,7 +30,6 @@ exports.addSchool = (req, res) => {
 };
 
 
-
 exports.listSchools = (req, res) => {
 
   const userLat = parseFloat(req.query.latitude);
